@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Sanjeevni Clinic</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .sidebar { height: 100vh; width: 250px; position: fixed; background: #1e293b; color: white; padding-top: 20px; }
+        .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; }
+        .sidebar a:hover, .sidebar a.active { background: #0f172a; color: white; border-left: 4px solid #3b82f6; }
+        .main-content { margin-left: 250px; padding: 25px; }
+        .card-stat { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .modal-blur { backdrop-filter: blur(8px); background: rgba(0,0,0,0.6); }
+    </style>
+</head>
+<body>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div class="modal fade show modal-blur" id="adminLoginModal" tabindex="-1" style="display: block;" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-shield me-2"></i>Admin Authentication</h5>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="loginAlert" class="alert alert-danger d-none" role="alert"></div>
+                    <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">Admin Email</label>
+                            <input type="email" id="adminEmail" class="form-control" placeholder="admin@sanjeevani.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" id="adminPassword" class="form-control" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 font-weight-bold">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login to Admin Portal
+                        </button>
+                    </form>
+                    <hr class="my-3">
+                    <button onclick="loginWithGoogle()" class="btn btn-outline-danger w-100">
+                        <i class="fab fa-google me-2"></i>Login via Google OAuth
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN DASHBOARD CONTENT -->
+    <div id="dashboardContent" style="display: none;">
+        <div class="sidebar">
+            <h4 class="text-center mb-4"><i class="fas fa-clinic-medical text-primary me-2"></i>Sanjeevni</h4>
+            <a href="#" class="active"><i class="fas fa-chart-line me-2"></i>Overview</a>
+            <a href="#systemUsersSection"><i class="fas fa-key me-2"></i>System Accounts</a>
+            <a href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+        </div>
+
+        <div class="main-content">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Admin Management Dashboard</h2>
+                <span class="badge bg-success px-3 py-2">Role: Admin / Super Admin</span>
+            </div>
+
+            <!-- STATS CARDS -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card card-stat bg-white p-3 border-start border-primary border-4">
+                        <small class="text-muted">Total Doctors</small>
+                        <h3 class="mb-0">21</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card card-stat bg-white p-3 border-start border-success border-4">
+                        <small class="text-muted">Total Patients</small>
+                        <h3 class="mb-0">148</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card card-stat bg-white p-3 border-start border-warning border-4">
+                        <small class="text-muted">Active Bookings</small>
+                        <h3 class="mb-0">34</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card card-stat bg-white p-3 border-start border-danger border-4">
+                        <small class="text-muted">System Accounts</small>
+                        <h3 class="mb-0" id="statSysCount">1 Active</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SYSTEM USERS CREATION SECTION -->
+            <div class="card border-0 shadow-sm mb-4" id="systemUsersSection">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 text-dark"><i class="fas fa-user-gear me-2 text-primary"></i>Generate System Page Credentials</h5>
+                </div>
+                <div class="card-body">
+                    <form id="createSystemUserForm" class="row g-3 mb-4" onsubmit="createSystemUser(event)">
+                        <div class="col-md-4">
+                            <input type="text" id="sysUserId" class="form-control" placeholder="System User ID (e.g., SYS_AGENT_01)" required>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="password" id="sysPassword" class="form-control" placeholder="Set Access Password" required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-success w-100"><i class="fas fa-plus-circle me-2"></i>Create System Access</button>
+                        </div>
+                    </form>
+
+                    <h6>Existing System Credentials</h6>
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>System User ID</th>
+                                <th>Role Scope</th>
+                                <th>Created Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="systemUsersTable">
+                            <tr>
+                                <td>SYS_MONITOR_01</td>
+                                <td><span class="badge bg-info">System / Health Check</span></td>
+                                <td>2026-10-08</td>
+                                <td><button class="btn btn-sm btn-outline-danger" onclick="revokeRow(this)">Revoke</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if token already exists on page load
+        window.onload = function() {
+            if (localStorage.getItem('admin_token')) {
+                document.getElementById('adminLoginModal').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+            }
+        };
+
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value.trim();
+            const alertBox = document.getElementById('loginAlert');
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    localStorage.setItem('admin_token', data.token);
+                    document.getElementById('adminLoginModal').style.display = 'none';
+                    document.getElementById('dashboardContent').style.display = 'block';
+                    alertBox.classList.add('d-none');
+                } else {
+                    alertBox.innerText = data.detail || 'Invalid Admin Credentials!';
+                    alertBox.classList.remove('d-none');
+                }
+            } catch (err) {
+                alertBox.innerText = 'Server Connection Error! Make sure FastAPI backend is running.';
+                alertBox.classList.remove('d-none');
+            }
+        }
+
+        async function createSystemUser(e) {
+            e.preventDefault();
+            const sysId = document.getElementById('sysUserId').value.trim();
+            const password = document.getElementById('sysPassword').value.trim();
+
+            try {
+                const response = await fetch('/api/admin/generate-system-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ system_user_id: sysId, password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    const table = document.getElementById('systemUsersTable');
+                    const today = new Date().toISOString().split('T')[0];
+                    table.innerHTML += `
+                        <tr>
+                            <td>${sysId}</td>
+                            <td><span class="badge bg-info">System / Health Check</span></td>
+                            <td>${today}</td>
+                            <td><button class="btn btn-sm btn-outline-danger" onclick="revokeRow(this)">Revoke</button></td>
+                        </tr>
+                    `;
+                    document.getElementById('createSystemUserForm').reset();
+                    alert(data.message);
+                } else {
+                    alert(data.detail || 'Failed to create system credentials');
+                }
+            } catch (err) {
+                alert('Connection error while generating credentials.');
+            }
+        }
+
+        function loginWithGoogle() {
+            window.location.href = '/auth/google';
+        }
+
+        function revokeRow(btn) {
+            btn.closest('tr').remove();
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_token');
+            location.reload();
+        }
+    </script>
+</body>
+</html>

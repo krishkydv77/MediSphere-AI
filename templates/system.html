@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System & Infrastructure Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Consolas', 'Courier New', monospace; }
+        .card-dark { background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; }
+        .status-dot { height: 10px; width: 10px; background-color: #22c55e; border-radius: 50%; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <!-- SYSTEM LOGIN MODAL -->
+    <div class="modal fade show" id="systemLoginModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.85);" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content card-dark">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title text-info"><i class="fas fa-server me-2"></i>System Infrastructure Access</h5>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="sysLoginAlert" class="alert alert-danger d-none" role="alert"></div>
+                    <form id="systemLoginForm" onsubmit="handleSystemLogin(event)">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">System User ID</label>
+                            <input type="text" id="sysLoginId" class="form-control bg-dark text-white border-secondary" placeholder="SYS_MONITOR_01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">System Access Password</label>
+                            <input type="password" id="sysLoginPass" class="form-control bg-dark text-white border-secondary" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn btn-info w-100 py-2 font-weight-bold">
+                            <i class="fas fa-key me-2"></i>Authenticate System Role
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SYSTEM DASHBOARD -->
+    <div id="systemDashboard" class="container-fluid p-4" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+            <h3 class="text-info m-0"><i class="fas fa-microchip me-2"></i>System & MCP Infrastructure Health</h3>
+            <div>
+                <span class="me-3"><span class="status-dot me-2"></span>MCP Server: <span id="mcpPortText">Online (Port 8001)</span></span>
+                <button onclick="logout()" class="btn btn-sm btn-outline-danger">Terminate Session</button>
+            </div>
+        </div>
+
+        <!-- METRICS OVERVIEW -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card card-dark p-3">
+                    <small class="text-muted">FastMCP Status</small>
+                    <h4 class="text-success mt-1" id="mcpStatus">RUNNING</h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-dark p-3">
+                    <small class="text-muted">Database Connectors</small>
+                    <h4 class="text-info mt-1" id="dbStatus">CONNECTED</h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-dark p-3">
+                    <small class="text-muted">Active Connections</small>
+                    <h4 class="text-warning mt-1" id="activeConns">12 Active</h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-dark p-3">
+                    <small class="text-muted">LLM Endpoint (Groq)</small>
+                    <h4 class="text-success mt-1" id="groqStatus">ONLINE</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- SYSTEM AUDIT LOGS TABLE -->
+        <div class="card card-dark p-3">
+            <h5 class="text-info mb-3"><i class="fas fa-terminal me-2"></i>System Execution & Audit Logs</h5>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover text-monospace">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Timestamp</th>
+                            <th>User Role</th>
+                            <th>Tool Called</th>
+                            <th>RBAC Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditLogsTable">
+                        <!-- Fetched from backend -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            if (localStorage.getItem('sys_token')) {
+                document.getElementById('systemLoginModal').style.display = 'none';
+                document.getElementById('systemDashboard').style.display = 'block';
+                loadMetrics();
+                loadAuditLogs();
+            }
+        };
+
+        async function handleSystemLogin(e) {
+            e.preventDefault();
+            const sysId = document.getElementById('sysLoginId').value.trim();
+            const password = document.getElementById('sysLoginPass').value.trim();
+            const alertBox = document.getElementById('sysLoginAlert');
+
+            try {
+                const response = await fetch('/api/system/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ system_user_id: sysId, password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    localStorage.setItem('sys_token', data.token);
+                    document.getElementById('systemLoginModal').style.display = 'none';
+                    document.getElementById('systemDashboard').style.display = 'block';
+                    alertBox.classList.add('d-none');
+                    loadMetrics();
+                    loadAuditLogs();
+                } else {
+                    alertBox.innerText = data.detail || 'Invalid System User ID or Password!';
+                    alertBox.classList.remove('d-none');
+                }
+            } catch (err) {
+                alertBox.innerText = 'Error connecting to system auth service.';
+                alertBox.classList.remove('d-none');
+            }
+        }
+
+        async function loadMetrics() {
+            try {
+                const response = await fetch('/api/system/metrics');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('mcpStatus').innerText = data.fastmcp_status || 'RUNNING';
+                    document.getElementById('dbStatus').innerText = data.database_status || 'CONNECTED';
+                    document.getElementById('groqStatus').innerText = data.groq_llm_status || 'ONLINE';
+                    document.getElementById('activeConns').innerText = (data.active_connections || 12) + ' Active';
+                    document.getElementById('mcpPortText').innerText = `Online (Port ${data.fastmcp_port || 8001})`;
+                }
+            } catch (err) {
+                console.error('Failed to load system metrics:', err);
+            }
+        }
+
+        async function loadAuditLogs() {
+            try {
+                const response = await fetch('/api/system/audit-logs');
+                if (response.ok) {
+                    const data = await response.json();
+                    const table = document.getElementById('auditLogsTable');
+                    table.innerHTML = '';
+                    
+                    data.logs.forEach(log => {
+                        table.innerHTML += `
+                            <tr>
+                                <td>${log.timestamp}</td>
+                                <td><span class="badge bg-secondary">${log.user_role}</span></td>
+                                <td>${log.tool}</td>
+                                <td><span class="badge bg-success">${log.rbac_status}</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to load audit logs:', err);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('sys_token');
+            location.reload();
+        }
+    </script>
+</body>
+</html>

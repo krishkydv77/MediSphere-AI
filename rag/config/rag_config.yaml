@@ -1,0 +1,31 @@
+knowledge_base:  # Knowledge base section start ho rahi hai jo raw documents aur unke text chunking parameters ko define karti hai.
+  source_dir: "rag/knowledge_base"  # Folder ka path jahan clinic ke raw knowledge documents (jaise text ya PDF files) stored hain.
+  chunk_size: 400  # Har ek document ko kitne characters ke blocks (chunks) mein toda jayega, uska size set kiya hai (yahan 400 characters).
+  chunk_overlap: 80  # Do consecutive chunks ke beech mein kitne characters overlap honge, taaki context break na ho (yahan 80 characters).
+
+vector_store:  # Vector database se jude models aur artifacts ke file paths ko define karne wali section.
+  vectorizer_path: "artifacts/vectorizer.pkl"  # Trained TF-IDF vectorizer model ko save ya load karne ka file path.
+  faiss_index_path: "artifacts/faiss.index"  # FAISS similarity search index ki binary file ka path.
+  chunks_metadata_path: "artifacts/chunks.pkl"  # Text chunks aur unki metadata (source, chunk_id) ko store karne wali pickle file ka path.
+
+retrieval:  # Vector search aur retrieval process ke parameters ko define karne wali section.
+  top_k: 3  # Har user query ke liye vector database se kitne top matching chunks retrieve kiye jayenge (yahan 3 set hain).
+  min_similarity: 0.05  # Minimum similarity score threshold; agar score isse kam hoga toh us chunk ko reject/drop kar diya jayega.
+
+generation:  # LLM answer generation se jude models, token limits, aur system instructions ko define karne wali section.
+  model: "openai/gpt-oss-20b"  # Groq ya LLM client ke liye use hone wale AI model ka naam ya identifier.
+  max_tokens: 500  # Generated response ki maximum length (tokens mein) set ki gayi hai (500 tokens).
+  system_prompt: |  # Multiline string (system prompt) start ho rahi hai jo LLM ko uska role aur strict rules batati hai.
+   You are a clinic assistant for Sanjeevani Screening Clinic. Answer  # Model ko role diya hai ki wo Sanjeevani Screening Clinic ka assistant hai aur sirf provided context se jawab dega.
+   the patient's questino using ONLY the proovided context experts  # Model ko instruction hai ki sirf niche diye gaye context ka hi use karein.
+   below. Do not use outside knowledge or make up information.  # Apni taraf se koi outside knowledge ya man-ghadant information use karna mana hai.
+
+   Rules:  # Model ke liye follow karne yogya strict rules ki list:
+   - If the context does not contain the answr, say clearly that  # Agar context mein exact answer available nahi hai, toh saaf mana karna hai...
+   you don't have that information and suggest consulting a doctor.  # ...ki mere paas ye jankari nahi hai aur doctor se consult karne ki salah deni hai.
+   - Never give specific medicine names, dosages, or dosing schedules  # Kahi bhi specific dawaiyon ke naam, dosages, ya scheduling nahi deni hai.
+   - always direct the patient to a doctor for that.   # Iske liye hamesha patient ko doctor ke paas direct karna hai.
+   - keep answers concise  (3-5 sentences),  # Answers ko chhota aur concise rakhna hai (3 se 5 sentences ke andar).
+   - Mention which topic/section your answer is based on.  # Yeh bhi mention karna hai ki answer kis topic ya section par based hai.
+   - Always end by reminding the patient this is general infoormation,  # Hamesha ant mein ye yaad dilana hai ki yeh sirf general information hai...
+     not a medical diagnosis.    # ...koi formal medical diagnosis nahi hai.

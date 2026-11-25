@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sanjeevani Screening Clinic</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  
+  <!-- Chatbot & Auth Custom CSS (Theme Integration) -->
+  <style>
+    /* Chat Widget Toggle Button */
+    .chat-widget-toggle {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--teal-700);
+      color: var(--paper);
+      border: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .chat-widget-toggle:hover {
+      background: var(--teal-900);
+      transform: scale(1.05);
+    }
+
+    /* Chat Container Popup */
+    .chat-modal {
+      display: none;
+      position: fixed;
+      bottom: 92px;
+      right: 24px;
+      width: 380px;
+      max-width: calc(100vw - 48px);
+      height: 520px;
+      max-height: calc(100vh - 120px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 1000;
+    }
+    .chat-modal.open {
+      display: flex;
+    }
+
+    /* Chat Header */
+    .chat-header {
+      background: var(--teal-700);
+      color: var(--paper);
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-header h4 {
+      margin: 0;
+      font-family: 'Fraunces', serif;
+      font-size: 1.1rem;
+    }
+    .chat-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--paper);
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    /* Chat Messages Box */
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--sage-100);
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .message.bot {
+      background: var(--panel);
+      color: var(--ink);
+      align-self: flex-start;
+      border: 1px solid var(--line);
+    }
+    .message.user {
+      background: var(--teal-700);
+      color: var(--paper);
+      align-self: flex-end;
+    }
+
+    /* Chat Input Bar */
+    .chat-input-container {
+      padding: 12px;
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chat-input-container input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .chat-input-container input[type="file"] {
+      display: none;
+    }
+
+    .upload-btn, .send-btn {
+      background: var(--sage-200);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      cursor: pointer;
+      color: var(--teal-900);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .send-btn {
+      background: var(--teal-700);
+      color: var(--paper);
+    }
+
+    .file-preview {
+      font-size: 0.75rem;
+      color: var(--teal-700);
+      padding: 2px 8px;
+      display: none;
+      background: var(--sage-100);
+      border-radius: 4px;
+    }
+
+    /* Auth Modal Styling (Theme Integrated) */
+    .auth-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-overlay.open {
+      display: flex;
+    }
+    .auth-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      width: 360px;
+      padding: 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    .auth-card h3 {
+      margin-top: 0;
+      color: var(--teal-900);
+      font-family: 'Fraunces', serif;
+    }
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .auth-form label {
+      font-size: 0.85rem;
+      color: var(--ink);
+    }
+    .auth-form input {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      outline: none;
+      font-size: 0.9rem;
+    }
+    .auth-btn {
+      background: var(--teal-700);
+      color: var(--paper);
+      padding: 10px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+    .auth-btn:hover {
+      background: var(--teal-900);
+    }
+    .auth-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    .auth-msg {
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+
+    /* Super User Dropdown Styling */
+    .nav-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-btn {
+      background: transparent;
+      border: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: var(--panel, #ffffff);
+      border: 1px solid var(--line, #e2e8f0);
+      border-radius: var(--radius-sm, 6px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 130px;
+      z-index: 1050;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .dropdown-menu a {
+      display: block;
+      padding: 8px 14px;
+      color: var(--ink, #1e293b);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.2s ease;
+    }
+    .dropdown-menu a:hover {
+      background: var(--sage-100, #f1f5f9);
+      color: var(--teal-900, #0f766e);
+    }
+    .nav-dropdown:hover .dropdown-menu {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <a href="/" class="brand">
+      <span class="brand-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 21s-7.5-4.6-9.8-9.4C.6 7.9 2.4 4.5 6 4.1c2-.2 3.6.9 6 3 2.4-2.1 4-3.2 6-3 3.6.4 5.4 3.8 3.8 7.5C19.5 16.4 12 21 12 21z" fill="#F6F3EC"/>
+        </svg>
+      </span>
+      Sanjeevani Clinic
+    </a>
+    <nav style="display: flex; gap: 16px; align-items: center;">
+      <a href="/predict">Start screening</a>
+      <a href="/pretrained-nlp">NLP Prediction</a>
+      <a href="/medlens/">MedLens AI</a>
+
+      <!-- Super User Dropdown -->
+      <div class="nav-dropdown">
+        <button class="dropdown-btn">
+          Super User ▾
+        </button>
+        <div class="dropdown-menu">
+          <a href="/admin.html">Admin</a>
+          <a href="/system.html">System</a>
+        </div>
+      </div>
+
+      {% if user_name %}
+        <span style="font-weight: bold; color: var(--teal-900);">Hello, {{ user_name }}</span>
+        <a href="/logout">Logout</a>
+      {% else %}
+        <a href="javascript:void(0)" id="loginLink">Login</a>
+        <a href="javascript:void(0)" id="registerLink">Register</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>A quick covid check, before your visit even begins.</h1>
+        <p class="lede">
+          Tell us your age, temperature and a couple of symptoms — our
+          screening desk gives you an instant read on your covid risk,
+          so the doctor's time goes where it's needed most.
+        </p>
+        <div class="cta-row">
+          <a href="/predict" class="btn-primary">
+            Start screening
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#F6F3EC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <span class="hint-text">Takes under a minute</span>
+        </div>
+
+        <div class="stat-row">
+          <div>
+            <div class="stat-num">4</div>
+            <div class="stat-label">quick questions</div>
+          </div>
+          <div>
+            <div class="stat-num">&lt;1 min</div>
+            <div class="stat-label">to a result</div>
+          </div>
+          <div>
+            <div class="stat-num">24×7</div>
+            <div class="stat-label">desk open</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-panel">
+        <span class="badge">Screening desk · Now open</span>
+        <div class="vitals-card">
+          <div>
+            <div class="label">Temperature</div>
+            <div class="value">101.2°F</div>
+          </div>
+          <div>
+            <div class="label">Cough</div>
+            <div class="value">Mild</div>
+          </div>
+        </div>
+        <div class="vitals-card">
+          <div>
+            <div class="label">City</div>
+            <div class="value">Jaipur</div>
+          </div>
+          <div>
+            <div class="label">Age</div>
+            <div class="value">34</div>
+          </div>
+        </div>
+        <div class="vitals-card">
+          <div>
+            <div class="label">Screening result</div>
+            <div class="value">Ready in seconds</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="reasons">
+      <div class="reason-card">
+        <h3>No queue, no waiting</h3>
+        <p>Fill the form from home or the waiting room — the result comes back the moment you submit it.</p>
+      </div>
+      <div class="reason-card">
+        <h3>Built on real intake data</h3>
+        <p>The screening model learns from patient records of age, fever, cough type and city to gauge risk.</p>
+      </div>
+      <div class="reason-card">
+        <h3>A guide, not a diagnosis</h3>
+        <p>Treat this as a first read. A positive result still means the doctor should examine you properly.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    Sanjeevani Screening Clinic — this tool assists triage, it does not replace medical diagnosis.
+  </footer>
+
+  <!-- AUTHENTICATION POPUP MODAL -->
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+      <button class="auth-close" id="authCloseBtn">&times;</button>
+      <h3 id="authTitle">Login</h3>
+      
+      <form class="auth-form" id="authForm">
+        <div id="fullNameGroup" style="display: none;">
+          <label>Full Name</label>
+          <input type="text" id="authFullName" placeholder="John Doe" />
+        </div>
+        <div>
+          <label>Email Address</label>
+          <input type="email" id="authEmail" required placeholder="name@example.com" />
+        </div>
+        <div>
+          <label>Password</label>
+          <input type="password" id="authPassword" required placeholder="••••••••" />
+        </div>
+        <button type="submit" class="auth-btn" id="authSubmitBtn">Submit</button>
+      </form>
+
+      <div class="auth-msg" id="authMsg"></div>
+    </div>
+  </div>
+
+  <!-- CHATBOT FLOATING WIDGET -->
+  <button class="chat-widget-toggle" id="chatToggleBtn">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+  </button>
+
+  <div class="chat-modal" id="chatModal">
+    <div class="chat-header">
+      <h4>Sanjeevani AI Assistant</h4>
+      <button class="chat-close-btn" id="chatCloseBtn">&times;</button>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot">
+        Namaste! I am Sanjeevani Medical Assistant. How can I help you today? You can also upload symptom images!
+      </div>
+    </div>
+
+    <div class="file-preview" id="filePreview">Image attached</div>
+
+    <div class="chat-input-container">
+      <label class="upload-btn" title="Upload Image">
+        📷
+        <input type="file" id="imageInput" accept="image/*" />
+      </label>
+      <button class="upload-btn" id="voiceBtn" type="button" title="Voice (bolkar poochhein)">🎤</button>
+      <input type="text" id="userInput" placeholder="Ask symptoms or details..." />
+      <button class="send-btn" id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // ------------------------------------------
+      // Auth Modal Logic
+      // ------------------------------------------
+      const authOverlay = document.getElementById('authOverlay');
+      const authCloseBtn = document.getElementById('authCloseBtn');
+      const loginLink = document.getElementById('loginLink');
+      const registerLink = document.getElementById('registerLink');
+      const authTitle = document.getElementById('authTitle');
+      const authSubmitBtn = document.getElementById('authSubmitBtn');
+      const authForm = document.getElementById('authForm');
+      const authMsg = document.getElementById('authMsg');
+      const fullNameGroup = document.getElementById('fullNameGroup');
+      const authFullName = document.getElementById('authFullName');
+
+      if (loginLink) {
+        loginLink.addEventListener('click', () => {
+          authTitle.innerText = 'Login / Register';
+          authSubmitBtn.innerText = 'Login / Register';
+          fullNameGroup.style.display = 'none';
+          authMsg.innerText = '';
+          authOverlay.classList.add('open');
+        });
+      }
+
+      if (registerLink) {
+        registerLink.addEventListener('click', () => {
+          authTitle.innerText = 'Login / Register';
+          authSubmitBtn.innerText = 'Login / Register';
+          fullNameGroup.style.display = 'none';
+          authMsg.innerText = '';
+          authOverlay.classList.add('open');
+        });
+      }
+
+      if (authCloseBtn) {
+        authCloseBtn.addEventListener('click', () => {
+          authOverlay.classList.remove('open');
+        });
+      }
+
+      if (authForm) {
+        authForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('authEmail').value.trim();
+          const password = document.getElementById('authPassword').value.trim();
+
+          authMsg.style.color = '#333';
+          authMsg.innerText = 'Processing...';
+
+          try {
+            const formData = new URLSearchParams();
+            formData.append('email', email);
+            formData.append('password', password);
+
+            const response = await fetch('/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: formData
+            });
+
+            if (response.ok) {
+              authMsg.style.color = 'green';
+              authMsg.innerText = 'Successful! Reloading...';
+              setTimeout(() => window.location.reload(), 1000);
+            } else {
+              const data = await response.json().catch(() => ({}));
+              authMsg.style.color = 'red';
+              authMsg.innerText = data.message || 'Error occurred. Check your password.';
+            }
+          } catch (err) {
+            authMsg.style.color = 'red';
+            authMsg.innerText = 'Connection error. Please try again.';
+          }
+        });
+      }
+
+      // ------------------------------------------
+      // Chatbot Logic
+      // ------------------------------------------
+      const toggleBtn = document.getElementById('chatToggleBtn');
+      const closeBtn = document.getElementById('chatCloseBtn');
+      const modal = document.getElementById('chatModal');
+      const sendBtn = document.getElementById('sendBtn');
+      const userInput = document.getElementById('userInput');
+      const imageInput = document.getElementById('imageInput');
+      const chatMessages = document.getElementById('chatMessages');
+      const filePreview = document.getElementById('filePreview');
+
+      if (toggleBtn && modal) {
+        toggleBtn.addEventListener('click', () => modal.classList.toggle('open'));
+      }
+
+      if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+      }
+
+      if (imageInput) {
+        imageInput.addEventListener('change', () => {
+          if (imageInput.files && imageInput.files.length > 0) {
+            filePreview.innerText = `Image: ${imageInput.files[0].name.substring(0, 15)}...`;
+            filePreview.style.display = 'block';
+          } else {
+            filePreview.style.display = 'none';
+          }
+        });
+      }
+
+      if (sendBtn) {
+        sendBtn.addEventListener('click', async () => {
+          const text = userInput.value.trim();
+          const file = imageInput && imageInput.files ? imageInput.files[0] : null;
+
+          if (!text && !file) return;
+
+          appendMessage('user', text || (file ? "[Image Uploaded]" : ""));
+
+          userInput.value = '';
+          if (imageInput) imageInput.value = '';
+          if (filePreview) filePreview.style.display = 'none';
+
+          const loadingMsg = appendMessage('bot', 'Thinking...');
+
+          try {
+            let response;
+            if (file) {
+              const formData = new FormData();
+              formData.append('injury_image', file);
+
+              response = await fetch('/api/chat-image', {
+                method: 'POST',
+                body: formData
+              });
+            } else {
+              const formData = new URLSearchParams();
+              formData.append('user_message', text);
+
+              response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+              });
+            }
+
+            const data = await response.json();
+            loadingMsg.remove();
+
+            if (data.status === 'success' || data.reply) {
+              appendMessage('bot', data.reply);
+            } else {
+              appendMessage('bot', data.reply || 'Kuchh dikkat aayi. Kripya login check karein.');
+            }
+          } catch (err) {
+            loadingMsg.remove();
+            appendMessage('bot', 'Connection error. Please check backend server.');
+          }
+        });
+      }
+
+      if (userInput) {
+        userInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            sendBtn.click();
+          }
+        });
+      }
+
+      function appendMessage(sender, htmlContent) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}`;
+        msgDiv.innerHTML = htmlContent;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return msgDiv;
+      }
+    });
+  </script>
+
+  <!-- Voice chat (Sarvam STT/TTS) -->
+  <script src="/static/voice.js"></script>
+
+</body>
+</html>
